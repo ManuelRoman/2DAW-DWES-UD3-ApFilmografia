@@ -1,0 +1,9 @@
+DROP DATABASE IF EXISTS cine;
+CREATE DATABASE cine;
+USE cine;
+CREATE TABLE peliculas (
+  director VARCHAR(128),
+  titulo VARCHAR(128) NOT NULL,
+  fecha DATETIME NOT NULL,
+  PRIMARY KEY (director)
+);
