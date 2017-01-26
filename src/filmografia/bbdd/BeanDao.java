@@ -37,7 +37,10 @@ public class BeanDao {
 	}
 	
 	public void close() throws SQLException {
-		
+		if (conexion != null) {
+			conexion.close();
+		}
+		conexion = null;
 	}
 	
 	public Boolean ifExistDirector(String director) throws SQLException {
@@ -48,18 +51,25 @@ public class BeanDao {
 		// Se comprueba si existe el director
 		if (rs.next()) {
 			exist = true;
-		} 
+		}
+		if (st != null) {
+			st = null;
+		}
 		return exist;
 	}
 	
 	public ListaPeliculas getPeliculas(String director) throws SQLException {
         ListaPeliculas listaPeliculas = new ListaPeliculas();
+        getConexion();
         Statement st = conexion.createStatement();
         ResultSet rs = st.executeQuery("SELECT * FROM peliculas where director = '" + director + "'");
         while (rs.next()) {
             Pelicula pelicula = new Pelicula(rs.getString("director"), rs.getString("titulo"), rs.getDate("fecha"));
             listaPeliculas.add(pelicula);
         }
+        if (st != null) {
+			st = null;
+		}
 		return listaPeliculas;
 	}
 

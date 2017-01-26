@@ -64,27 +64,29 @@ public class ConsultaCine extends HttpServlet{
 	}
 	
 	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		//Comprueba si la aplicación puede funcionar.
+				//Comprueba si la aplicación puede funcionar.
 				if (!appOperativa){
-					//error = new BeanError(0,"La aplicación no se encuentra operativa en este momento, intentelo más tarde.");
-					//request.setAttribute("error", error);
-					//RequestDispatcher rd = request.getRequestDispatcher("WEB-INF/gesError.jsp");
-				    //rd.forward(request,response);
-					System.out.println("Datasource incorrecto");
+					System.out.println("Aplicación no operativa");
 				} else{
-					System.out.println("Datasource correcto");
+					String accion = request.getParameter("accion");
 					String director = request.getParameter("director");
-					ListaPeliculas listaPeliculas = null;
-					boolean existeDirector = false;
-					System.out.println(director);
-					try {
+					//Comprueba si se ha seleccionado finalizar
+					if (accion!=null){
+						if (accion.equals("finalizar")){
+							RequestDispatcher rd = request.getRequestDispatcher("WEB-INF/consultasRealizadas.jsp");
+						    rd.forward(request,response);
+						}
+					} else{
+						ListaPeliculas listaPeliculas = null;
+						boolean existeDirector = false;
+						try {
 						beanDao.getConexion();
 						existeDirector = beanDao.ifExistDirector(director);
 					} catch (SQLException e) {
-						// TODO Auto-generated catch block
+					// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-					System.out.println(existeDirector);
+					// Comprueba si existe el director, si existe consulta las películas
 					if (existeDirector){
 						try {
 							beanDao.getConexion();
@@ -92,13 +94,28 @@ public class ConsultaCine extends HttpServlet{
 						} catch (SQLException e) {
 							// TODO Auto-generated catch block
 							e.printStackTrace();
+						} finally{
+							try {
+								beanDao.close();
+							} catch (SQLException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
 						}
 						request.setAttribute("listaPeliculas", listaPeliculas);
+						request.setAttribute("director", director);
 						RequestDispatcher rd = request.getRequestDispatcher("WEB-INF/resultado.jsp");
 					    rd.forward(request,response);
 					}else{
+						try {
+							beanDao.close();
+						} catch (SQLException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 						System.out.println("No existe el director");
 					}
 				}
+			}
 	}
 }

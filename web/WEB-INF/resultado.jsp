@@ -6,9 +6,21 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 <title>Lista de películas</title>
+<style>
+	body{
+		text-align: center;
+	}
+	div{
+		position: absolute;
+		left: 35%;
+	}
+</style>
 </head>
 <body>
-	<% ListaPeliculas listaPeliculas = (ListaPeliculas) request.getAttribute("listaPeliculas"); %>
+	<div>
+	<% ListaPeliculas listaPeliculas = (ListaPeliculas) request.getAttribute("listaPeliculas"); 
+	ListaDirectores listaDirectores = (ListaDirectores) session.getAttribute("listaDirectores");
+	listaDirectores.add((String)request.getAttribute("director")); %>
 	<table>
   		<tr>
     		<th>Título película</th>
@@ -30,5 +42,10 @@
 		<input type="hidden" name="accion" value="nuevaConsulta" />
 		<input type="submit" value="Nueva Consulta">
 	</form>
+	<form action="/filmografia/consultar" method="post">
+		<input type="hidden" name="accion" value="finalizar" />
+		<input type="submit" value="Finalizar">
+	</form>
+	</div>
 </body>
 </html>
