@@ -2,7 +2,7 @@
     <wb-module deploy-name="ApFilmografia">
         <wb-resource deploy-path="/" source-path="/web" tag="defaultRootSource"/>
         <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
-        <property name="context-root" value="ApFilmografia"/>
         <property name="java-output-path" value="/ApFilmografia/build/classes"/>
+        <property name="context-root" value="filmografia"/>
     </wb-module>
 </project-modules>
