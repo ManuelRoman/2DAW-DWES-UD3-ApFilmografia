@@ -18,104 +18,121 @@ import filmografia.bbdd.*;
 import filmografia.beans.*;
 
 @SuppressWarnings("serial")
-public class ConsultaCine extends HttpServlet{
-	
+public class ConsultaCine extends HttpServlet {
+
 	/**
-	 * Informa si la aplicación se encuentra operativa
+	 * Información de la Base de datos
 	 */
-	private boolean appOperativa = true;
-	
+	private DataSource dataSource;
+
 	/**
-	 * Objeto encargado e la comunicación con la base de datos
+	 * Objeto que encapsula la información a nivel de la aplicación
 	 */
-	
-	private BeanDao beanDao;
-	
+	private ServletContext sc;
+
 	/**
 	 * Constructor por defecto
 	 */
 	public ConsultaCine() {
-        super();
-    }	
-	
+		super();
+	}
+
 	/**
-	 * Inicializa el servlet y la fuente de datos 
+	 * Inicializa el servlet y la fuente de datos
 	 */
 	public void init(ServletConfig config) throws ServletException {
 		super.init(config);
-    	ServletContext application = config.getServletContext();
-    	String urlDataSource = (String) application.getInitParameter("URLDataSource");
-    	InitialContext initCtx = null;
-    	DataSource dataSource=null;
-    	try {
+		sc = config.getServletContext();
+		String urlDataSource = (String) sc.getInitParameter("URLDataSource");
+		InitialContext initCtx = null;
+		try {
 			initCtx = new InitialContext();
-			dataSource = (DataSource) initCtx.lookup(urlDataSource);
-		} catch (NamingException e) {
-			appOperativa = false;
-    	}
-		beanDao = new BeanDao(dataSource);
+			this.dataSource = (DataSource) initCtx.lookup(urlDataSource);
+			// Se almacena el DataSource en la aplicación.
+			sc.setAttribute("dataSource", dataSource);
+		} catch (NamingException ne) {
+			System.out.println("Error: Método init(). " + ne.getMessage());
+			sc.setInitParameter("appOperativa", "false");
+		}
+		sc.setInitParameter("appOperativa", "true");
 	}
 
 	/**
 	 * Recibe las peticiones GET y las pasa al método doPost
 	 */
-	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-		doPost(request,response);
+	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		doPost(request, response);
 	}
-	
-	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-				//Comprueba si la aplicación puede funcionar.
-				if (!appOperativa){
-					System.out.println("Aplicación no operativa");
-				} else{
-					String accion = request.getParameter("accion");
-					String director = request.getParameter("director");
-					//Comprueba si se ha seleccionado finalizar
-					if (accion!=null){
-						if (accion.equals("finalizar")){
-							RequestDispatcher rd = request.getRequestDispatcher("WEB-INF/consultasRealizadas.jsp");
-						    rd.forward(request,response);
-						}
-					} else{
-						ListaPeliculas listaPeliculas = null;
-						boolean existeDirector = false;
-						try {
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response)
+			throws ServletException, IOException {
+		BeanError error = null;
+		// Comprueba si la aplicación ha accedido al datasource
+		if (sc.getInitParameter("appOperativa").equals("true")) {
+			BeanDao beanDao = new BeanDao(dataSource);
+			String accion = request.getParameter("accion");
+			String director = request.getParameter("director");
+			// Comprueba si se ha seleccionado finalizar
+			if (accion != null) {
+				if (accion.equals("finalizar")) {
+					RequestDispatcher rd = request.getRequestDispatcher("WEB-INF/consultasRealizadas.jsp");
+					rd.forward(request, response);
+				}
+			} else {
+				ListaPeliculas listaPeliculas = new ListaPeliculas();
+				boolean existeDirector = false;
+				try {
+					beanDao.getConexion();
+					existeDirector = beanDao.ifExistDirector(director);
+				} catch (SQLException e) {
+					error = new BeanError(e.getErrorCode(), "Error en la base de datos");
+					e.printStackTrace();
+				}
+				// Comprueba si existe el director, si existe consulta las películas
+				if (existeDirector) {
+					try {
 						beanDao.getConexion();
-						existeDirector = beanDao.ifExistDirector(director);
+						listaPeliculas = beanDao.getPeliculas(director);
 					} catch (SQLException e) {
-					// TODO Auto-generated catch block
+						error = new BeanError(e.getErrorCode(), "Error en la base de datos");
 						e.printStackTrace();
-					}
-					// Comprueba si existe el director, si existe consulta las películas
-					if (existeDirector){
-						try {
-							beanDao.getConexion();
-							listaPeliculas = beanDao.getPeliculas(director);
-						} catch (SQLException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} finally{
-							try {
-								beanDao.close();
-							} catch (SQLException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-						}
-						request.setAttribute("listaPeliculas", listaPeliculas);
-						request.setAttribute("director", director);
-						RequestDispatcher rd = request.getRequestDispatcher("WEB-INF/resultado.jsp");
-					    rd.forward(request,response);
-					}else{
+					} finally {
 						try {
 							beanDao.close();
 						} catch (SQLException e) {
-							// TODO Auto-generated catch block
+							error = new BeanError(e.getErrorCode(), "Error al cerrar la conexión con la base de datos");
 							e.printStackTrace();
 						}
-						System.out.println("No existe el director");
 					}
+					request.setAttribute("listaPeliculas", listaPeliculas);
+					request.setAttribute("director", director);
+					RequestDispatcher rd = request.getRequestDispatcher("WEB-INF/resultado.jsp");
+					rd.forward(request, response);
+				} else if (existeDirector == false & error == null) {
+					try {
+						beanDao.close();
+					} catch (SQLException e) {
+						error = new BeanError(e.getErrorCode(), "Error al cerrar la conexión con la base de datos");
+						e.printStackTrace();
+					}
+					System.out.println("No existe el director");
+					RequestDispatcher rd = request.getRequestDispatcher("WEB-INF/listaTodosDirectores.jsp");
+					rd.forward(request, response);
 				}
 			}
+
+		} else {
+			if (error == null) {
+				System.out.println("Aplicación no operativa");
+				error = new BeanError(1, "Aplicación no operativa");
+			}
+
+		}
+		if (error != null) {
+			request.setAttribute("error", error);
+			RequestDispatcher rd = request.getRequestDispatcher("WEB-INF/errores.jsp");
+			rd.forward(request, response);
+		}
 	}
 }

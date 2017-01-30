@@ -8,7 +8,6 @@
   <servlet>
    	<servlet-name>ConsultaCine</servlet-name>
   	<servlet-class>filmografia.servlet.ConsultaCine</servlet-class>
-  	<enabled>true</enabled>
   </servlet>
   <servlet-mapping>
   	<servlet-name>ConsultaCine</servlet-name>
